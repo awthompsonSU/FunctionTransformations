@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#782b1b">
+  <meta name="description" content="Identify parent functions and match their transformations to graphs.">
+  <title>Function Transformations</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="quiz.js" defer></script>
+  <script src="script.js" defer></script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="brand-row">
+        <div class="brand-icon" aria-hidden="true">ƒ</div>
+        <div>
+          <h1>Function Transformations</h1>
+          <p>Identify the parent function. Match the equation to its graph.</p>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="page-shell">
+    <section id="startPanel" class="start-panel card" aria-labelledby="startTitle">
+      <div class="intro-copy">
+        <h2 id="startTitle">Ready to transform?</h2>
+        <p>First choose the parent function. Then match the transformed equation to one of four graphs.</p>
+        <div class="intro-chips">
+          <span>Horizontal shifts</span><span>Vertical shifts</span><span>Vertical stretches and shrinks</span>
+        </div>
+      </div>
+      <form id="startForm" class="start-form">
+        <label for="studentName">Student name <span class="required">*</span></label>
+        <input id="studentName" autocomplete="name" maxlength="80" required placeholder="First and last name" aria-describedby="nameHelp">
+        <p id="nameHelp" class="field-help">Your scores are saved in this browser.</p>
+        <button class="button button-primary button-full">Start playing</button>
+      </form>
+    </section>
+
+    <div id="gameArea" hidden>
+      <div class="session-bar">
+        <h2>Welcome, <span id="displayName"></span></h2>
+        <div class="session-actions"><button type="button" id="newStudent" class="button button-quiet">New student / clear scores</button></div>
+      </div>
+
+      <section class="answer-card card" aria-labelledby="question">
+        <div class="card-heading">
+          <h2 id="question" tabindex="-1"></h2>
+          <span id="problemNumber" class="problem-number"></span>
+        </div>
+        <p id="equation" class="equation"></p>
+        <p id="graphHelp" class="field-help" hidden>All four graphs use the same scale. Trigonometric inputs are in radians.</p>
+        <div id="choices" class="choices"></div>
+        <div id="feedback" class="feedback" role="status"></div>
+        <button type="button" id="next" class="button button-primary" hidden>Next problem</button>
+      </section>
+
+      <section class="card score-card" aria-labelledby="scoreTitle">
+        <div class="card-heading compact-heading"><h2 id="scoreTitle">Your progress</h2></div>
+        <div class="progress-identity"><strong id="progressName"></strong><span>As of <time id="timestamp"></time></span></div>
+        <table class="score-table">
+          <thead><tr><th scope="col">Skill</th><th scope="col" class="num">Right</th><th scope="col" class="num">Answered</th><th scope="col" class="num">Accuracy</th></tr></thead>
+          <tbody id="scores"></tbody>
+        </table>
+        <p id="scoreNote" class="field-help score-note">Each graph answer scores all three skills separately, including when the equation has no shift or scaling in that category.</p>
+        <div class="progress-actions">
+          <button type="button" id="downloadProgressBtn" class="button button-secondary">Download progress JPEG</button>
+          <p class="field-help">The image includes your name, current scores, and the date and time.</p>
+          <p id="reportStatus" class="report-status" role="status"></p>
+        </div>
+      </section>
+    </div>
+  </main>
+  <footer class="page-footer">
+    <div class="footer-inner">
+      <a id="universityLink" class="university-link" href="https://www.salisbury.edu/" aria-label="Visit Salisbury University">
+        <img id="universityLogo" src="assets/salisbury-university-logo.jpg" alt="Salisbury University" width="600" height="600" loading="lazy">
+      </a>
+      <div class="footer-copy">
+        <p class="footer-title">Function Transformations</p>
+        <p class="author-credit">App author: <a href="https://faculty.salisbury.edu/~awthompson/welcome.htm">Andrew Thompson</a></p>
+        <p>A browser-based classroom practice activity.<br>No account or internet connection required.</p>
+      </div>
+    </div>
+  </footer>
+</body>
+</html>

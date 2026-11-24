@@ -204,7 +204,7 @@ function answerGraph(graph, button) {
   const correct = graph === problem.target;
   const correctIndex = problem.graphs.indexOf(problem.target);
   const missed = graphSkills.find(({ key }) => graph[key] !== problem.target[key]);
-  for (const { key } of graphSkills) {
+  for (const { key } of problem.assessed) {
     record(key, graph[key] === problem.target[key]);
   }
   saveSession();
@@ -219,33 +219,36 @@ function showGraphs() {
   stage = 'graph';
   byId('question').textContent = 'Which graph matches the equation?';
   byId('graphHelp').hidden = false;
-  byId('choices').classList.add('graphs');
-  byId('choices').replaceChildren(...problem.graphs.map((graph, i) => {
-    const button = choiceButton('Graph ' + letters[i], 'graph-choice', selected => answerGraph(graph, selected));
-    const { canvas, samples } = drawGraph(graph);
-    const description = document.createElement('span');
-    description.className = 'visually-hidden';
-    description.textContent = '. Visible points at integer x values, rounded as needed: ' + samples.join(', ');
-    button.append(canvas, description);
-    return button;
-  }));
+  byId('choices').replaceChildren(...problem.graphs.map((graph, i) =>
+    graphButton(graph, i, button => answerGraph(graph, button))
+  ));
   feedback('Correct parent function. Now match its transformed graph.', true);
   byId('question').focus();
+}
+
+function graphButton(graph, index, select) {
+  const button = choiceButton('Graph ' + letters[index], 'graph-choice', select);
+  const { canvas, samples } = drawGraph(graph);
+  const description = document.createElement('span');
+  description.className = 'visually-hidden';
+  description.textContent = '. Visible points at integer x values, rounded as needed: ' + samples.join(', ');
+  button.append(canvas, description);
+  return button;
 }
 
 function newProblem() {
   const number = problem ? problem.number + 1 : session.scores.family.total + 1;
   problem = { ...makeProblem(problem?.target), number };
   stage = 'family';
-  byId('question').textContent = 'Which is the parent function?';
+  byId('question').textContent = 'Which graph shows the parent function?';
   byId('problemNumber').textContent = 'Problem ' + number;
   byId('equation').textContent = equation(problem.target);
-  byId('graphHelp').hidden = true;
+  byId('graphHelp').hidden = false;
   byId('next').hidden = true;
   feedback('');
-  byId('choices').classList.remove('graphs');
-  byId('choices').replaceChildren(...problem.parents.map(family =>
-    choiceButton('f(x) = ' + family.expression('x'), 'family-choice', button => answerFamily(family, button))
+  byId('choices').replaceChildren(...problem.parents.map((family, i) =>
+    graphButton({ family, h: 0, k: 0, a: 1, reflected: false }, i,
+      button => answerFamily(family, button))
   ));
   byId('question').focus();
 }
@@ -268,11 +271,13 @@ function downloadProgress() {
   updateTimestamp(date);
   const canvas = document.createElement('canvas');
   canvas.width = 1500;
-  canvas.height = 820;
+  const noteY = 219 + skills.length * 41;
+  const reportHeight = noteY + 60;
+  canvas.height = reportHeight * 2;
   const ctx = canvas.getContext('2d');
   ctx.scale(2, 2);
   ctx.fillStyle = '#fff';
-  ctx.fillRect(0, 0, 750, 410);
+  ctx.fillRect(0, 0, 750, reportHeight);
   ctx.fillStyle = '#782b1b';
   ctx.fillRect(0, 0, 750, 76);
   ctx.fillStyle = '#fec81e';
@@ -315,8 +320,8 @@ function downloadProgress() {
   ctx.textAlign = 'left';
   ctx.font = '14px system-ui';
   ctx.fillStyle = '#586372';
-  ctx.fillText('Graph answers score each transformation parameter separately.', 28, 375);
-  ctx.fillText('Browser-generated practice report.', 28, 395);
+  ctx.fillText('Each graph answer scores the skills tested by its choices.', 28, noteY + 14);
+  ctx.fillText('Browser-generated practice report.', 28, noteY + 34);
 
   byId('downloadProgressBtn').disabled = true;
   canvas.toBlob(blob => {

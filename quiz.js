@@ -16,7 +16,8 @@ const skills = [
   { key: 'family', label: 'Function family' },
   { key: 'h', label: 'Horizontal shift', values: offsets, identity: 0 },
   { key: 'k', label: 'Vertical shift', values: offsets, identity: 0 },
-  { key: 'a', label: 'Vertical stretch / shrink', values: scales, identity: 1 }
+  { key: 'a', label: 'Vertical stretch / shrink', values: scales, identity: 1 },
+  { key: 'reflected', label: 'Reflection over the x-axis', values: [false, true], identity: false }
 ];
 
 function pick(values) {
@@ -39,9 +40,12 @@ function makeProblem(previous) {
   do {
     target = { family: pick(families) };
     // A nonempty bit mask selects the parameters that change from the parent.
-    const mask = 1 + Math.floor(Math.random() * 7);
+    const mask = 1 + Math.floor(Math.random() * ((1 << graphSkills.length) - 1));
     graphSkills.forEach(({ key, values, identity }, index) => {
-      target[key] = mask & (1 << index) ? pick(values.filter(value => value !== identity)) : identity;
+      const alternatives = values.filter(value => value !== identity
+        // Tangent shifts of opposite sign at ±3 are nearly one period apart.
+        && !(key === 'h' && target.family.hasPoles && Math.abs(value) === 3));
+      target[key] = mask & (1 << index) ? pick(alternatives) : identity;
     });
   } while (previous && skills.every(({ key }) => target[key] === previous[key]));
 
@@ -49,22 +53,27 @@ function makeProblem(previous) {
     target.family,
     ...shuffle(families.filter(family => family !== target.family)).slice(0, 3)
   ]);
-  const graphs = shuffle([
-    target,
-    ...graphSkills.map(({ key, values }) => {
-      const period = key === 'h' && target.family.period;
-      const alternatives = values.filter(value => {
-        const delta = value - target[key];
-        // Keep periodic distractors visibly separated from the target.
-        return period ? Math.abs(delta - period * Math.round(delta / period)) >= 0.75 : delta !== 0;
-      });
-      return { ...target, [key]: pick(alternatives) };
-    })
-  ]);
-  return { target, parents, graphs };
+  const required = graphSkills.filter(({ key }) =>
+    (key === 'h' && target.h !== 0) || (key === 'reflected' && target.reflected));
+  const optional = shuffle(graphSkills.filter(skill => !required.includes(skill)));
+  const assessed = [...required, ...optional.slice(0, 3 - required.length)];
+  const graphs = shuffle([target, ...assessed.map(skill => distractor(target, skill))]);
+  return { target, parents, graphs, assessed };
 }
 
-function equation({ family, h, k, a }) {
+function distractor(target, { key, values }) {
+  if (key === 'h' && target.h !== 0) return { ...target, h: -target.h };
+
+  const period = key === 'h' && target.family.period;
+  const alternatives = values.filter(value => {
+    const delta = value - target[key];
+    // Keep periodic distractors visibly separated from the target.
+    return period ? Math.abs(delta - period * Math.round(delta / period)) >= 0.75 : delta !== 0;
+  });
+  return { ...target, [key]: pick(alternatives) };
+}
+
+function equation({ family, h, k, a, reflected }) {
   const x = h ? 'x ' + (h > 0 ? '− ' : '+ ') + Math.abs(h) : 'x';
   const isPower = family === families[0] || family === families[1];
   const body = family.expression(h && isPower ? '(' + x + ')' : x);
@@ -72,11 +81,11 @@ function equation({ family, h, k, a }) {
   const coefficient = a === 1
     ? ''
     : a === 0.25 ? '¼·' : a === 0.5 ? '½·' : String(a);
-  return 'f(x) = ' + coefficient + body + tail;
+  return 'f(x) = ' + (reflected ? '−' : '') + coefficient + body + tail;
 }
 
-function evaluate({ family, h, k, a }, x) {
-  return a * family.evaluate(x - h) + k;
+function evaluate({ family, h, k, a, reflected }, x) {
+  return (reflected ? -a : a) * family.evaluate(x - h) + k;
 }
 
 function crossesPole(graph, left, right) {

@@ -109,7 +109,6 @@ input[aria-invalid="true"] { border-color:#b22b32 }
 }
 .choices { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
 .choice { display: grid; align-items: center; gap: 6px; min-width: 0; }
-.family-choice { font: 700 1.25rem Georgia, serif; min-height: 58px; }
 .graph-choice { padding: 8px; text-align: left; }
 .graph-choice canvas { display: block; width: 100%; height: auto; }
 .choice:disabled { opacity: 1; }
@@ -122,10 +121,10 @@ input[aria-invalid="true"] { border-color:#b22b32 }
 .progress-identity { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 6px 16px; overflow-wrap: anywhere; }
 .progress-identity strong { min-width: 0; }
 @media (max-width: 920px) {
-  .choices.graphs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .choices { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 520px) {
-  .choices { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .choices { gap: 8px; }
   .graph-choice { padding: 4px; }
   .score-table th, .score-table td { padding-inline: 3px; }
 }

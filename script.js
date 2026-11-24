@@ -10,6 +10,8 @@ const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 let session;
 let problem;
 let stage;
+const inspectPoints = byId('inspectPoints');
+let activePoint;
 
 function freshSession(name) {
   return {
@@ -139,6 +141,7 @@ function drawGraph(graph) {
   ctx.strokeStyle = '#a62d2c';
   ctx.lineWidth = 2.7;
   ctx.lineJoin = 'round';
+  const points = [];
   let previousX;
   for (let i = 0; i <= 1200; i += 1) {
     const x = (i - 600) / 60;
@@ -148,33 +151,51 @@ function drawGraph(graph) {
       continue;
     }
     const method = previousX === undefined || crossesPole(graph, previousX, x) ? 'moveTo' : 'lineTo';
-    ctx[method](centerX + x * unit, centerY - y * unit);
+    const pixelX = centerX + x * unit;
+    const pixelY = centerY - y * unit;
+    ctx[method](pixelX, pixelY);
+    if (Math.abs(y) <= 8) {
+      points.push({ x, y, left: pixelX / width, top: pixelY / height });
+    }
     previousX = x;
   }
   ctx.stroke();
   ctx.restore();
 
-  const samples = Array.from({ length: 21 }, (_, i) => i - 10).flatMap(x => {
-    const y = evaluate(graph, x);
-    return Number.isFinite(y) && Math.abs(y) <= 8
-      ? ['(' + x + ', ' + Number(y.toFixed(2)) + ')']
-      : [];
-  });
   canvas.setAttribute('aria-hidden', 'true');
-  return { canvas, samples };
+  return { canvas, points };
 }
 
-function choiceButton(text, className, select) {
-  const button = document.createElement('button');
-  button.type = 'button';
-  button.className = 'button button-quiet choice ' + className;
-  button.textContent = text;
-  button.addEventListener('click', () => select(button));
-  return button;
+function nearestPoint(points, bounds, clientX, clientY) {
+  let nearest;
+  let bestDistance = 16 ** 2;
+  for (const point of points) {
+    const dx = point.left * bounds.width - (clientX - bounds.left);
+    const dy = point.top * bounds.height - (clientY - bounds.top);
+    const distance = dx ** 2 + dy ** 2;
+    if (distance < bestDistance) {
+      nearest = point;
+      bestDistance = distance;
+    }
+  }
+  return nearest;
+}
+
+function formatPoint({ x, y }) {
+  return '(' + Number(x.toFixed(2)) + ', ' + Number(y.toFixed(2)) + ')';
+}
+
+function clearPoint() {
+  if (activePoint) activePoint.marker.hidden = true;
+  activePoint = undefined;
+  byId('pointStatus').textContent = '';
 }
 
 function finishQuestion(correct, message, selected, correctIndex) {
   stage = 'finished';
+  clearPoint();
+  inspectPoints.disabled = true;
+  byId('pointHelp').hidden = true;
   const buttons = [...byId('choices').children];
   buttons.forEach(button => { button.disabled = true; });
   buttons[correctIndex].classList.add('correct');
@@ -217,6 +238,7 @@ function answerGraph(graph, button) {
 
 function showGraphs() {
   stage = 'graph';
+  clearPoint();
   byId('question').textContent = 'Which graph matches the equation?';
   byId('graphHelp').hidden = false;
   byId('choices').replaceChildren(...problem.graphs.map((graph, i) =>
@@ -227,12 +249,67 @@ function showGraphs() {
 }
 
 function graphButton(graph, index, select) {
-  const button = choiceButton('Graph ' + letters[index], 'graph-choice', select);
-  const { canvas, samples } = drawGraph(graph);
+  const label = 'Graph ' + letters[index];
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'button button-quiet choice graph-choice';
+  button.textContent = label;
+
+  const { canvas, points } = drawGraph(graph);
+  const integerPoints = points.filter(point => Number.isInteger(point.x));
+  const frame = document.createElement('span');
+  frame.className = 'point-frame';
+  const marker = document.createElement('span');
+  marker.className = 'point-marker';
+  marker.hidden = true;
+  frame.setAttribute('aria-hidden', 'true');
+  frame.append(canvas, marker);
+
   const description = document.createElement('span');
   description.className = 'visually-hidden';
-  description.textContent = '. Visible points at integer x values, rounded as needed: ' + samples.join(', ');
-  button.append(canvas, description);
+  description.textContent = '. Visible points at integer x values, rounded as needed: '
+    + integerPoints.map(formatPoint).join(', ');
+  button.append(frame, description);
+
+  function showPoint(point) {
+    clearPoint();
+    marker.style.left = point.left * 100 + '%';
+    marker.style.top = point.top * 100 + '%';
+    marker.hidden = false;
+    activePoint = { marker, point };
+    byId('pointStatus').textContent = label + ' · ' + formatPoint(point);
+  }
+
+  function stepPoint(direction) {
+    const current = activePoint?.marker === marker ? activePoint.point : undefined;
+    const ordered = direction > 0 ? integerPoints : [...integerPoints].reverse();
+    const point = ordered.find(sample => !current || direction * (sample.x - current.x) > 0);
+    if (point) showPoint(point);
+  }
+
+  button.addEventListener('click', event => {
+    if (!inspectPoints.checked) {
+      select(button);
+      return;
+    }
+    if (event.detail === 0) {
+      stepPoint(1);
+      return;
+    }
+    if (event.target !== canvas) return;
+    const point = nearestPoint(points, canvas.getBoundingClientRect(), event.clientX, event.clientY);
+    if (point) {
+      showPoint(point);
+    } else {
+      clearPoint();
+      byId('pointStatus').textContent = 'Click closer to the curve on ' + label + '.';
+    }
+  });
+  button.addEventListener('keydown', event => {
+    if (!inspectPoints.checked || !['ArrowLeft', 'ArrowRight'].includes(event.key)) return;
+    event.preventDefault();
+    stepPoint(event.key === 'ArrowLeft' ? -1 : 1);
+  });
   return button;
 }
 
@@ -240,6 +317,9 @@ function newProblem() {
   const number = problem ? problem.number + 1 : session.scores.family.total + 1;
   problem = { ...makeProblem(problem?.target), number };
   stage = 'family';
+  clearPoint();
+  inspectPoints.disabled = false;
+  byId('pointHelp').hidden = !inspectPoints.checked;
   byId('question').textContent = 'Which graph shows the parent function?';
   byId('problemNumber').textContent = 'Problem ' + number;
   byId('equation').textContent = equation(problem.target);
@@ -255,6 +335,7 @@ function newProblem() {
 
 function start(saved) {
   session = saved;
+  inspectPoints.checked = false;
   problem = undefined;
   byId('displayName').textContent = session.name;
   byId('startPanel').hidden = true;
@@ -356,6 +437,10 @@ byId('startForm').addEventListener('submit', event => {
   }
   start(freshSession(name));
   saveSession();
+});
+inspectPoints.addEventListener('change', () => {
+  clearPoint();
+  byId('pointHelp').hidden = !inspectPoints.checked;
 });
 byId('next').addEventListener('click', newProblem);
 byId('downloadProgressBtn').addEventListener('click', downloadProgress);

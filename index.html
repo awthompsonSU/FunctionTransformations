@@ -53,6 +53,11 @@
         </div>
         <p id="equation" class="equation"></p>
         <p id="graphHelp" class="field-help" hidden>All four graphs use the same scale. Trigonometric inputs are in radians.</p>
+        <div class="point-controls">
+          <label><input id="inspectPoints" type="checkbox" aria-describedby="pointHelp"> Show point coordinates</label>
+          <p id="pointHelp" class="field-help" hidden>Click or tap near a curve, or focus a graph and use the left and right arrow keys. Uncheck to choose an answer.</p>
+          <p id="pointStatus" role="status"></p>
+        </div>
         <div id="choices" class="choices"></div>
         <div id="feedback" class="feedback" role="status"></div>
         <button type="button" id="next" class="button button-primary" hidden>Next problem</button>
